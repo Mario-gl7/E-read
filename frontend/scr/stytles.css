@@ -1,0 +1,63 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  color: #f3f3f3;
+  background: #14141a;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+.card {
+  background: #1f2230;
+  border: 1px solid #2f3550;
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.row {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.text-panel {
+  max-height: 300px;
+  overflow-y: auto;
+  line-height: 1.8;
+}
+
+.word {
+  border: none;
+  background: transparent;
+  color: #7fd9ff;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.word:hover {
+  text-decoration: underline;
+}
+
+button,
+select,
+input {
+  border-radius: 8px;
+  border: 1px solid #3c4265;
+  background: #2b3152;
+  color: #fff;
+  padding: 0.45rem 0.7rem;
+}
+
+.error {
+  color: #ff8585;
+}
