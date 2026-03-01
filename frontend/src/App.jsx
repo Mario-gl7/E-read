@@ -21,7 +21,7 @@ function App() {
   const [sourceLang, targetLang] = languageMode.split('-')
 
   async function loadVocabulary() {
-    const response = await fetch(`${API_BASE}/vocab`)
+    const response = await fetch(`${API_BASE}vocab`)
     if (!response.ok) return
     setVocab(await response.json())
   }
@@ -36,7 +36,7 @@ function App() {
     setLoading(true)
     setError('')
     try {
-      const response = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData })
+      const response = await fetch(`${API_BASE}upload`, { method: 'POST', body: formData })
       const data = await response.json()
       if (!response.ok) throw new Error(data.detail || 'Upload error')
       setRawText(data.text)
@@ -61,7 +61,7 @@ function App() {
         source_lang: sourceLang,
         target_lang: targetLang
       })
-      const response = await fetch(`${API_BASE}/translate?${query}`)
+      const response = await fetch(`${API_BASE}translate?${query}`)
       const data = await response.json()
       if (!response.ok) throw new Error(data.detail || 'Translation error')
       setTranslation(data.translation)
@@ -80,7 +80,7 @@ function App() {
       target_lang: targetLang
     }
 
-    const response = await fetch(`${API_BASE}/vocab`, {
+    const response = await fetch(`${API_BASE}vocab`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
