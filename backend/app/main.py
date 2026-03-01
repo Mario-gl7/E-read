@@ -21,7 +21,7 @@ app = FastAPI(title="E-read Vocabulary API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://e-read-mgl.vercel.app"], #CAMBAIR SI CAMBIAMOS DE FRONTEND DEPLOYER
+    allow_origins=["*"], #CAMBAIR SI CAMBIAMOS DE FRONTEND DEPLOYER
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
