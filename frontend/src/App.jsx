@@ -1,14 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { deleteBookRecord, getAllBooks, putBookRecord, requestPersistentStorage } from './db'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000'
-const BOOKS_STORAGE_KEY = 'e_read_books_v1'
 const WORDS_PER_PAGE = 220
 const READER_MAX_LINES_PER_PAGE = 18
 const SUPPORTED_LANGS = ['de', 'es']
-const LANG_LABELS = {
-  de: 'Aleman',
-  es: 'Espanol'
-}
 
 function CollapseIcon() {
   return (
@@ -90,16 +86,12 @@ function makeBookId() {
   return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
 }
 
-function loadStoredBooks() {
-  try {
-    const raw = localStorage.getItem(BOOKS_STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return parsed
-  } catch {
-    return []
-  }
+function sortBooks(list) {
+  return [...list].sort((a, b) => {
+    const first = a.createdAt || ''
+    const second = b.createdAt || ''
+    return second.localeCompare(first)
+  })
 }
 
 function formatStoredDate(isoDate) {
@@ -117,6 +109,7 @@ function App() {
   const [activeBookId, setActiveBookId] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [storageError, setStorageError] = useState('')
   const [vocab, setVocab] = useState([])
   const [vocabError, setVocabError] = useState('')
   const [readerPageIndex, setReaderPageIndex] = useState(0)
@@ -213,13 +206,26 @@ function App() {
   const readerStatusVisible = readerNavVisible || readerTopHover
 
   useEffect(() => {
-    setBooks(loadStoredBooks())
-    loadVocabulary()
-  }, [])
+    let cancelled = false
 
-  useEffect(() => {
-    localStorage.setItem(BOOKS_STORAGE_KEY, JSON.stringify(books))
-  }, [books])
+    async function init() {
+      await requestPersistentStorage()
+
+      try {
+        const stored = await getAllBooks()
+        if (!cancelled) setBooks(sortBooks(stored))
+      } catch {
+        if (!cancelled) setStorageError('No se pudo abrir la base de datos local (IndexedDB).')
+      }
+
+      await loadVocabulary()
+    }
+
+    init()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!activeBook) {
@@ -256,11 +262,14 @@ function App() {
       })
       return changed ? next : prev
     })
+
+    const updatedBook = { ...activeBook, lastPageIndex: readerPageIndex }
+    void putBookRecord(updatedBook).catch(() => setStorageError('No se pudo guardar la pagina en la base local.'))
   }, [readerPageIndex, view, activeBook])
 
   useEffect(() => {
     if (view !== 'vocab') return
-    loadVocabulary()
+    void loadVocabulary()
   }, [view])
 
   useEffect(() => {
@@ -352,7 +361,13 @@ function App() {
         targetLang
       }
 
-      setBooks((prev) => [newBook, ...prev])
+      try {
+        await putBookRecord(newBook)
+      } catch {
+        setStorageError('No se pudo guardar el libro en la base de datos local.')
+      }
+
+      setBooks((prev) => sortBooks([newBook, ...prev]))
       setActiveBookId(newBook.id)
       setReaderPageIndex(0)
       setReaderPageInput('1')
@@ -382,7 +397,13 @@ function App() {
     setUploadError('')
   }
 
-  function deleteBook(bookId) {
+  async function deleteBook(bookId) {
+    try {
+      await deleteBookRecord(bookId)
+    } catch {
+      setStorageError('No se pudo borrar el libro de la base de datos local.')
+    }
+
     setBooks((prev) => prev.filter((book) => book.id !== bookId))
     if (activeBookId === bookId) {
       setActiveBookId(null)
@@ -620,7 +641,7 @@ function App() {
           <button onClick={() => setView('books')}>Libros</button>
           <button
             onClick={() => {
-              loadVocabulary()
+              void loadVocabulary()
               setView('vocab')
             }}
           >
@@ -646,7 +667,7 @@ function App() {
             accept=".pdf,.epub"
             onChange={(e) => {
               const selectedFile = e.target.files?.[0] || null
-              if (selectedFile) handleImportFile(selectedFile)
+              if (selectedFile) void handleImportFile(selectedFile)
               e.target.value = ''
             }}
           />
@@ -654,6 +675,7 @@ function App() {
 
         {uploading && <p className="loading-note">Procesando archivo...</p>}
         {uploadError && <p className="error">{uploadError}</p>}
+        {storageError && <p className="error">{storageError}</p>}
       </section>
     )
   }
@@ -666,6 +688,8 @@ function App() {
           <h2>Libros</h2>
           <span />
         </div>
+
+        {storageError && <p className="error">{storageError}</p>}
 
         {books.length === 0 ? (
           <p>Aun no has importado libros.</p>
@@ -684,7 +708,7 @@ function App() {
                   <button onClick={() => openBook(book.id)}>Abrir</button>
                   <button
                     onClick={() => {
-                      if (window.confirm('Quieres borrar este libro?')) deleteBook(book.id)
+                      if (window.confirm('Quieres borrar este libro?')) void deleteBook(book.id)
                     }}
                   >
                     Borrar
