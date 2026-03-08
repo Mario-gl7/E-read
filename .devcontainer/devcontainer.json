@@ -1,0 +1,17 @@
+{
+  "name": "E-read Codespace",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "postCreateCommand": "bash -lc 'cd frontend && npm install && cd ../backend && python3 -m venv .venv && . .venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt'",
+  "postStartCommand": "bash -lc 'for port in 8000 5173; do pid=$(lsof -t -i:$port -sTCP:LISTEN 2>/dev/null || true); if [ -n \"$pid\" ]; then kill -9 $pid || true; fi; done; cd backend && nohup .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > backend-dev.log 2> backend-dev.err.log < /dev/null & cd ../frontend && nohup npm run dev -- --host 0.0.0.0 --port 5173 --strictPort > frontend-dev.log 2> frontend-dev.err.log < /dev/null &'",
+  "forwardPorts": [5173, 8000],
+  "portsAttributes": {
+    "5173": {
+      "label": "Frontend",
+      "onAutoForward": "openPreview"
+    },
+    "8000": {
+      "label": "Backend",
+      "onAutoForward": "silent"
+    }
+  }
+}
