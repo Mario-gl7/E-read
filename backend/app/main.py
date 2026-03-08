@@ -19,9 +19,17 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="E-read Vocabulary API", version="1.0.0")
 
+ALLOWED_ORIGINS = [
+    "https://e-read-mgl.vercel.app",
+    "http://127.0.0.1:4173",
+    "http://localhost:4173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://e-read-mgl.vercel.app"], #CAMBAIR SI CAMBIAMOS DE FRONTEND DEPLOYER
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -76,18 +84,26 @@ def health() -> dict[str, str]:
 
 
 def extract_pdf_text(file_path: Path) -> str:
-    reader = PdfReader(str(file_path))
-    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    try:
+        reader = PdfReader(str(file_path), strict=False)
+        text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid or unreadable PDF file: {exc}") from exc
+
     return text.strip()
 
 
 def extract_epub_text(file_path: Path) -> str:
-    book = epub.read_epub(str(file_path))
-    text_parts: list[str] = []
-    for item in book.get_items():
-        if item.get_type() == 9:  # ebooklib.ITEM_DOCUMENT
-            soup = BeautifulSoup(item.get_body_content(), "html.parser")
-            text_parts.append(soup.get_text(" ", strip=True))
+    try:
+        book = epub.read_epub(str(file_path))
+        text_parts: list[str] = []
+        for item in book.get_items():
+            if item.get_type() == 9:  # ebooklib.ITEM_DOCUMENT
+                soup = BeautifulSoup(item.get_body_content(), "html.parser")
+                text_parts.append(soup.get_text(" ", strip=True))
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid or unreadable ePub file: {exc}") from exc
+
     return "\n".join(part for part in text_parts if part).strip()
 
 

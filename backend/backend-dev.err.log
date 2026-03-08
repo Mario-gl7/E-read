@@ -1,0 +1,15 @@
+INFO:     Started server process [27108]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+invalid pdf header: b'not a'
+EOF marker not found
+invalid pdf header: b'Prolo'
+EOF marker not found
+EOF marker not found
+invalid pdf header: b'Prolo'
+EOF marker not found
+EOF marker not found
+invalid pdf header: b'Prolo'
+EOF marker not found
+EOF marker not found
